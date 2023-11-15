@@ -1,4 +1,4 @@
-package database
+package clients
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/shukra-in-spirit/k8x/internal/config"
 )
 
 const (
@@ -16,7 +15,7 @@ const (
 )
 
 type PromData struct {
-	ServiceID string    `env:"service_id"`
+	ServiceID string    `json:"service_id"`
 	Timestamp time.Time `json:"timestamp"`
 	CPU       float32   `json:"cpu"`
 	Memory    float32   `json:"memory"`
@@ -30,16 +29,10 @@ type promStore struct {
 	client dynamodbiface.DynamoDBAPI
 }
 
-func NewPromStore(conf config.AWSConfig) *promStore {
-	newPromStore := promStore{}
-
-	session, err := CreateSession(conf)
-	if err != nil {
-		panic(err)
+func NewPromStore(client dynamodbiface.DynamoDBAPI) *promStore {
+	return &promStore{
+		client: client,
 	}
-	newPromStore.client = session
-
-	return &newPromStore
 }
 
 func (e *promStore) AddData(data *PromData) error {
