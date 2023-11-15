@@ -1,2 +1,2 @@
 # k8x
-## Kube Chi - AI controlled Kubernetes scaling
+Kube Chi - AI controlled Kubernetes scaling
