@@ -40,14 +40,14 @@ func (prom *PrometheusInstance) GetPrometheusData(ctx context.Context, promQuery
 	startTimeInt := endTime.Unix() - constants.DefaultPrometheusTimeRange
 	startTime := time.Unix(startTimeInt, 0)
 
-	responseDataFrame, err := prom.GetPrometheusDataWithinRange(ctx, promQuery, startTime, endTime)
+	responseDataFrame, err := prom.GetPrometheusDataWithinRange(ctx, promQuery, startTime, endTime, "")
 	if err != nil {
 		return &models.PrometheusDataSetResponse{}, nil
 	}
 	return responseDataFrame, nil
 }
 
-func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time) (*models.PrometheusDataSetResponse, error) {
+func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps string) (*models.PrometheusDataSetResponse, error) {
 	responseDataFrame := models.PrometheusDataSetResponse{}
 	return &responseDataFrame, nil
 }
