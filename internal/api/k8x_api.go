@@ -51,18 +51,12 @@ func (listener *K8ManagerAPI) AddServiceTok8x(c *gin.Context) {
 		return
 	}
 
-	data := &clients.PromData{
-		ServiceID: serviceID,
-		Timestamp: promData.Timestamp,
-		CPU:       promData.CPU,
-		Memory:    promData.Memory,
-	}
-
 	// Push to DB.
-	err = listener.dbClient.AddData(data)
+	// err = listener.dbClient.AddData(data)
+	err = listener.dbClient.AddDataBatch(&promData.PromItemList, serviceID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "DB write failed: " + err.Error(),
+			"error": "batch DB write failed: " + err.Error(),
 		})
 
 		return
@@ -73,6 +67,7 @@ func (listener *K8ManagerAPI) AddServiceTok8x(c *gin.Context) {
 	// if err != nil {
 	// 	return fmt.Errorf("failed marshalling input to lambda function: %v", err)
 	// }
+
 	_, err = listener.lambdaClient.TriggerCreateLambdaWithEvent([]byte("{}"), "change-lambda-func-name")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
