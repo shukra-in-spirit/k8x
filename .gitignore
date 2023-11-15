@@ -1,0 +1,6 @@
+/lambda/create_lambda/*
+!/lambda/create_lambda/requirements.txt
+!/lambda/create_lambda/lambda_handler.py
+/lambda/predict_lambda/*
+!/lambda/predict_lambda/requirements.txt
+!/lambda/predict_lambda/lambda_handler.py
