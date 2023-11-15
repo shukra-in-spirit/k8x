@@ -4,3 +4,4 @@
 /lambda/predict_lambda/*
 !/lambda/predict_lambda/requirements.txt
 !/lambda/predict_lambda/lambda_handler.py
+vendor
