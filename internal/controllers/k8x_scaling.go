@@ -12,7 +12,7 @@ import (
 )
 
 type ScalingFunctions interface {
-	SetReplicaValue(ctx context.Context, deployment_name string, namespace_name string, replica_value int) error
+	SetReplicaValue(ctx context.Context, deployment_name string, namespace_name string, replica_value int32) error
 	SetRequestValue(ctx context.Context, deployment_name string, namespace_name string, cpu_request_value float32, memory_request_value float32) error
 	SetLimitValue(ctx context.Context, deployment_name string, namespace_name string, cpu_limit_value float32, memory_limit_value float32) error
 	GetContainerNameFromDeployment(ctx context.Context, deployment_name string, namespace_name string) (string, error)
