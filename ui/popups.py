@@ -3,6 +3,7 @@ from tkinter import ttk
 import graphs
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import requests
 
 def open_popup_connect(app):
     # Create a new Toplevel window for the pop-up
@@ -82,58 +83,71 @@ def open_popup_help(app):
     button1.grid(row=4, column=0, columnspan=2, pady=10)
     button2.grid(row=5, column=0, columnspan=2, pady=5)
 
+class AddPopup():
+    def __init__(self):
+        super().__init__()
 
-def open_popup_add(app):
-    # Create a new Toplevel window for the pop-up
-    popup = tk.Toplevel(app)
-    popup.title("Add New Service")
+    def open_popup_add(self, app):
+        # Create a new Toplevel window for the pop-up
+        popup = tk.Toplevel(app)
+        popup.title("Add New Service")
 
-    # Create and place form widgets in the pop-up window
-    label1 = ttk.Label(popup, text="Deployment Name:")
-    entry1 = ttk.Entry(popup)
+        # Create and place form widgets in the pop-up window
+        label1 = ttk.Label(popup, text="Deployment Name:")
+        self.entry1 = ttk.Entry(popup)
 
-    label2 = ttk.Label(popup, text="Namespace:")
-    entry2 = ttk.Entry(popup)
+        label2 = ttk.Label(popup, text="Namespace:")
+        self.entry2 = ttk.Entry(popup)
 
-    label3 = ttk.Label(popup, text="epochs:")
-    entry3 = ttk.Entry(popup)
+        label3 = ttk.Label(popup, text="epochs:")
+        entry3 = ttk.Entry(popup)
 
-    label4 = ttk.Label(popup, text="hidden layers:")
-    entry4 = ttk.Entry(popup)
+        label4 = ttk.Label(popup, text="hidden layers:")
+        entry4 = ttk.Entry(popup)
 
-    label5 = ttk.Label(popup, text="n_steps:")
-    entry5 = ttk.Entry(popup)
+        label5 = ttk.Label(popup, text="n_steps:")
+        entry5 = ttk.Entry(popup)
 
-    label6 = ttk.Label(popup, text="n_features:")
-    entry6 = ttk.Entry(popup)
+        label6 = ttk.Label(popup, text="n_features:")
+        entry6 = ttk.Entry(popup)
 
 
-    button1 = ttk.Button(popup, text="Create", command=submit_form)
-    button2 = ttk.Button(popup, text="Predict", command=submit_form)
-    button3 = ttk.Button(popup, text="Cancel", command=popup.destroy)
+        button1 = ttk.Button(popup, text="Create", command=self.add_service)
+        button2 = ttk.Button(popup, text="Predict", command=self.start_service)
+        button3 = ttk.Button(popup, text="Cancel", command=popup.destroy)
 
-    # Grid layout for form widgets
-    label1.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-    entry1.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        # Grid layout for form widgets
+        label1.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.entry1.grid(row=0, column=1, padx=10, pady=5, sticky="w")
 
-    label2.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-    entry2.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        label2.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.entry2.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
-    label3.grid(row=2, column=0, padx=10, pady=5, sticky="w")
-    entry3.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        label3.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        entry3.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
-    label4.grid(row=3, column=0, padx=10, pady=5, sticky="w")
-    entry4.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+        label4.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        entry4.grid(row=3, column=1, padx=10, pady=5, sticky="w")
 
-    label5.grid(row=4, column=0, padx=10, pady=5, sticky="w")
-    entry5.grid(row=4, column=1, padx=10, pady=5, sticky="w")
+        label5.grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        entry5.grid(row=4, column=1, padx=10, pady=5, sticky="w")
 
-    label6.grid(row=5, column=0, padx=10, pady=5, sticky="w")
-    entry6.grid(row=5, column=1, padx=10, pady=5, sticky="w")
+        label6.grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        entry6.grid(row=5, column=1, padx=10, pady=5, sticky="w")
 
-    button1.grid(row=6, column=0, columnspan=2, pady=10)
-    button2.grid(row=7, column=0, columnspan=2, pady=5)
-    button3.grid(row=8, column=0, columnspan=2, pady=5)
+        button1.grid(row=6, column=0, columnspan=2, pady=10)
+        button2.grid(row=7, column=0, columnspan=2, pady=5)
+        button3.grid(row=8, column=0, columnspan=2, pady=5)
+
+    def add_service(self):
+        deployment = self.entry1.get()
+        namespace = self.entry2.get()
+        url = "localhost:8585/" + deployment + namespace + "123"
+        requests
+
+
+    def start_service(self):
+
 
 def open_popup_simulation(app, item):
     # Create a new Toplevel window for the pop-up

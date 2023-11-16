@@ -2,6 +2,7 @@ import customtkinter
 import os
 from PIL import Image
 import popups
+import requests
 
 
 class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
@@ -113,7 +114,8 @@ class App(customtkinter.CTk):
     
     def add_button_event(self):
         print('add service button clicked')
-        popups.open_popup_add(app)
+        addPopup = popups.AddPopup()
+        addPopup.open_popup_add(app)
     
     def log_button_event(self):
         print('add service button clicked')
