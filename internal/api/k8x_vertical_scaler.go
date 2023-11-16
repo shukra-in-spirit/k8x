@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/shukra-in-spirit/k8x/internal/constants"
 	"github.com/shukra-in-spirit/k8x/internal/controllers"
 	"github.com/shukra-in-spirit/k8x/internal/helpers"
 	"github.com/shukra-in-spirit/k8x/internal/models"
@@ -61,15 +62,26 @@ func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName
 		return "", "", fmt.Errorf("failed fetching container name for service %s: %v", id, err)
 	}
 
+	var promCPU, promMem *models.PrometheusDataSetResponse
+	var err1, err2 error
+
 	// Fetch 2 weeks data from prom.
-	promCPU, err := listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m")
-	if err != nil {
-		return "", "", fmt.Errorf("failed fetching data from prometheus: %v", err)
+	if helpers.GetEnvOrDefault("PROM_MODE", constants.Local) == constants.Local {
+		promCPU, err1 = controllers.GetCSVData(ctx, id+"-cpu-train.csv")
+		promMem, err2 = controllers.GetCSVData(ctx, id+"-mem-train.csv")
+	} else {
+		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m")
+		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(ns, "2m", container), startTime, currTime, "20m")
 	}
 
-	promMem, err := listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(ns, "2m", container), startTime, currTime, "20m")
-	if err != nil {
-		return "", "", fmt.Errorf("failed fetching data from prometheus: %v", err)
+	// promCPU, err = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m")
+	if err1 != nil {
+		return "", "", fmt.Errorf("failed fetching data from prometheus: %v", err1)
+	}
+
+	// promMem, err = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(ns, "2m", container), startTime, currTime, "20m")
+	if err2 != nil {
+		return "", "", fmt.Errorf("failed fetching data from prometheus: %v", err2)
 	}
 
 	promData := helpers.ProcessPromData(id, promCPU.PromItemList, promMem.PromItemList)
@@ -89,8 +101,15 @@ func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName
 		return "", "", fmt.Errorf("failed marshalling input to lambda function: %v", err)
 	}
 
+	var output *models.LambdaRespBody
+
 	// Call create lambda.
-	output, err := listener.lambdaClient.TriggerLambdaWithEvent(payload, funcName)
+	if helpers.GetEnvOrDefault("LAMBDA_MODE", constants.Local) == constants.Local {
+		output, err = helpers.TriggerLocalCreateLambdaWithEvent(payload, funcName)
+	} else {
+		output, err = listener.lambdaClient.TriggerLambdaWithEvent(payload, funcName)
+	}
+	// output, err := listener.lambdaClient.TriggerLambdaWithEvent(payload, funcName)
 	if err != nil {
 		return "", "", fmt.Errorf("lambda trigger failed: %v", err)
 	}

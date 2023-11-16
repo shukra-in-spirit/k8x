@@ -82,8 +82,8 @@ func (csvFile *CSVFile) GetCSVDataCPUandMem(ctx context.Context) (*models.Promet
 	return cpuDataFrame, memDataFrame, nil
 }
 
-func (csvFile *CSVFile) GetCSVData(ctx context.Context) (*models.PrometheusDataSetResponse, error) {
-	file, err := os.Open(csvFile.filePath)
+func GetCSVData(ctx context.Context, filePath string) (*models.PrometheusDataSetResponse, error) {
+	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("Error opening file: %v", err)
 	}

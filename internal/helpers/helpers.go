@@ -3,6 +3,7 @@ package helpers
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -77,4 +78,13 @@ func PrepareHistoryData(l1 []models.PrometheusDataSetResponseItem, l2 []models.P
 	}
 
 	return promData
+}
+
+// GetEnvOrDefault will return env value of given variable.
+func GetEnvOrDefault(envVar, defaultValue string) string {
+	if v := os.Getenv(envVar); v != "" {
+		return v
+	}
+
+	return defaultValue
 }

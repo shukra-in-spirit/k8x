@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shukra-in-spirit/k8x/internal/clients"
+	"github.com/shukra-in-spirit/k8x/internal/constants"
 	"github.com/shukra-in-spirit/k8x/internal/controllers"
 	"github.com/shukra-in-spirit/k8x/internal/helpers"
 	"github.com/shukra-in-spirit/k8x/internal/models"
@@ -138,17 +139,31 @@ func (listener *K8ManagerAPI) performOp(ctx context.Context, id string) {
 		return
 	}
 
+	var promCPU, promMem *models.PrometheusDataSetResponse
+	var err1, err2 error
+
+	currTime := time.Now()
+	startTime := currTime.Add(-3 * time.Hour)
+
 	// Fetch 3 hours data from prom.
-	promCPU, err := listener.promClient.GetPrometheusData(ctx, controllers.BuildPromQueryForCPU(namespace, "2m", container))
-	if err != nil {
-		log.Printf("failed fetching cpu data from prometheus: %v\n", err)
+	if helpers.GetEnvOrDefault("PROM_MODE", constants.Local) == constants.Local {
+		promCPU, err1 = controllers.GetCSVData(ctx, id+"-cpu-pred.csv")
+		promMem, err2 = controllers.GetCSVData(ctx, id+"-mem-pred.csv")
+	} else {
+		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(namespace, "2m", container), startTime, currTime, "20m")
+		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(namespace, "2m", container), startTime, currTime, "20m")
+	}
+
+	// promCPU, err := listener.promClient.GetPrometheusData(ctx, controllers.BuildPromQueryForCPU(namespace, "2m", container))
+	if err1 != nil {
+		log.Printf("failed fetching cpu data from prometheus: %v\n", err1)
 
 		return
 	}
 
-	promMem, err := listener.promClient.GetPrometheusData(ctx, controllers.BuildPromQueryForMemory(namespace, "2m", container))
-	if err != nil {
-		log.Printf("failed fetching memory data from prometheus: %v\n", err)
+	// promMem, err := listener.promClient.GetPrometheusData(ctx, controllers.BuildPromQueryForMemory(namespace, "2m", container))
+	if err2 != nil {
+		log.Printf("failed fetching memory data from prometheus: %v\n", err2)
 
 		return
 	}
@@ -173,8 +188,13 @@ func (listener *K8ManagerAPI) performOp(ctx context.Context, id string) {
 		return
 	}
 
+	var output *models.LambdaRespBody
 	// Call predict lambda
-	output, err := listener.lambdaClient.TriggerLambdaWithEvent(payload, "p")
+	if helpers.GetEnvOrDefault("LAMBDA_MODE", constants.Local) == constants.Local {
+		output, err = helpers.TriggerLocalCreateLambdaWithEvent(payload, "p")
+	} else {
+		output, err = listener.lambdaClient.TriggerLambdaWithEvent(payload, "p")
+	}
 	if err != nil {
 		log.Printf("lambda trigger failed: %v\n", err)
 
