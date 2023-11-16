@@ -68,7 +68,7 @@ func (listener *K8ManagerAPI) AddServiceTok8x(c *gin.Context) {
 	// 	return fmt.Errorf("failed marshalling input to lambda function: %v", err)
 	// }
 
-	_, err = listener.lambdaClient.TriggerCreateLambdaWithEvent([]byte("{}"), "change-lambda-func-name")
+	_, err = listener.lambdaClient.TriggerCreateLambdaWithEvent([]byte("{}"), "c")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "lambda trigger failed: " + err.Error(),
