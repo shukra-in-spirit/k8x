@@ -11,3 +11,12 @@ Worry not. You can have latency and automation at the same time. Thanks to k8x. 
 How does k8x perform this magic?
 ## Architecture
 ![image](https://github.com/shukra-in-spirit/k8x/assets/85339011/21079c13-37b3-4d09-a630-060279bf2bd1)
+
+## Using LSTM for Kubernetes Load Prediction
+
+**Long Short-Term Memory (LSTM):** LSTM, a type of recurrent neural network (RNN), excels at capturing temporal dependencies in data. With memory cells and gates, LSTMs overcome the vanishing gradient problem, making them ideal for learning from historical Kubernetes load data.
+
+**Why LSTMs for Kubernetes Load Prediction?** Kubernetes workloads exhibit variable patterns, and LSTMs are well-suited for real-time adaptability to changing demands. This README provides a concise guide for preparing data, training an LSTM model using TensorFlow or PyTorch, and deploying it to predict Kubernetes load.
+
+```diff
+- Sample Code: Check the example Python code using TensorFlow and Keras for LSTM model training.
