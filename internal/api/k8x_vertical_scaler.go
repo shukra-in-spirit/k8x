@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/shukra-in-spirit/k8x/internal/helpers"
 	"github.com/shukra-in-spirit/k8x/internal/models"
 )
 
@@ -24,18 +25,19 @@ func (listener *K8ManagerAPI) verticalScaler(ctx context.Context, id string) {
 		}
 
 		if avg_cpu != "" && avg_mem != "" {
+			deployment, namespace := helpers.DecomposeServiceID(id)
 			final_cpu, _ := strconv.ParseFloat(avg_cpu, 32)
 			final_mem, _ := strconv.ParseFloat(avg_mem, 32)
 
-			// scale the values
-			err = listener.kubeClient.SetLimitValue(ctx, "", "", float32(final_cpu*3), float32(final_mem*3))
+			// scale the values for cpu.
+			err = listener.kubeClient.SetLimitValue(ctx, deployment, namespace, float32(final_cpu*3), float32(final_mem*3))
 			if err != nil {
 				log.Printf("failed setting limit value: %v\n", err)
 
 				continue
 			}
 
-			err = listener.kubeClient.SetRequestValue(ctx, "", "", float32(final_cpu), float32(final_mem))
+			err = listener.kubeClient.SetRequestValue(ctx, deployment, namespace, float32(final_cpu), float32(final_mem))
 			if err != nil {
 				log.Printf("failed setting request value: %v\n", err)
 

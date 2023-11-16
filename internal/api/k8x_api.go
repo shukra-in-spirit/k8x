@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shukra-in-spirit/k8x/internal/clients"
 	"github.com/shukra-in-spirit/k8x/internal/controllers"
+	"github.com/shukra-in-spirit/k8x/internal/helpers"
 	"github.com/shukra-in-spirit/k8x/internal/models"
 )
 
@@ -137,6 +138,13 @@ func (listener *K8ManagerAPI) performOp(ctx context.Context, id string) {
 	input := models.LambdaRequest{ServiceID: id, Params: models.TuningParams{}, History: *promData}
 
 	// Get the current resource utilization -> request cpu
+	deployment, namespace := helpers.DecomposeServiceID(id)
+	request_cpu, _, err := listener.kubeClient.GetRequestValue(ctx, deployment, namespace)
+	if err != nil {
+		log.Printf("failed getting current request values: %v\n", err)
+
+		return
+	}
 
 	// build the request.
 	payload, err := json.Marshal(input)
@@ -156,9 +164,10 @@ func (listener *K8ManagerAPI) performOp(ctx context.Context, id string) {
 
 	if output.CPU != "" {
 		predicted_cpu, _ := strconv.Atoi(output.CPU)
+		int_request_cpu, _ := strconv.Atoi(request_cpu)
 
 		// replica = predicted cpu/request cpu
-		err = listener.kubeClient.SetReplicaValue(ctx, "", "", int32(predicted_cpu))
+		err = listener.kubeClient.SetReplicaValue(ctx, deployment, namespace, int32(predicted_cpu/int_request_cpu))
 		if err != nil {
 			log.Printf("failed setting limit value: %v\n", err)
 
