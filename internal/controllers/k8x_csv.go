@@ -27,48 +27,57 @@ func LoadCSVFile(path string) *CSVFile {
 	}
 }
 
-func (csvFile *CSVFile) GetCSVData(ctx context.Context) (*models.PrometheusDataSetResponse, error) {
+func (csvFile *CSVFile) GetCSVData(ctx context.Context) (*models.PrometheusDataSetResponse, *models.PrometheusDataSetResponse, error) {
 	file, err := os.Open(csvFile.filePath)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening file: %v", err)
+		return nil, nil, fmt.Errorf("Error opening file: %v", err)
 	}
 	defer file.Close()
 
 	reader := csv.NewReader(file)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("Error reading CSV: %v", err)
+		return nil, nil, fmt.Errorf("Error reading CSV: %v", err)
 	}
 
-	var data []models.PrometheusDataSetResponseItem
+	var cpuData []models.PrometheusDataSetResponseItem
+	var memData []models.PrometheusDataSetResponseItem
 	for _, record := range records {
 		// Parse timestamp, CPU, and memory values from the CSV record
 		timestamp, err := time.Parse(time.RFC3339, record[0])
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing timestamp: %v", err)
+			return nil, nil, fmt.Errorf("Error parsing timestamp: %v", err)
 		}
 
 		cpu, err := strconv.ParseFloat(record[1], 32)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing CPU value: %v", err)
+			return nil, nil, fmt.Errorf("Error parsing CPU value: %v", err)
 		}
 
 		memory, err := strconv.ParseFloat(record[2], 32)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing memory value: %v", err)
+			return nil, nil, fmt.Errorf("Error parsing memory value: %v", err)
 		}
 
 		// Create a Data struct and append it to the slice
-		dataPoint := models.PrometheusDataSetResponseItem{
+		cpuDataPoint := models.PrometheusDataSetResponseItem{
 			Timestamp: timestamp,
-			CPU:       float32(cpu),
-			Memory:    float32(memory),
+			Metric:    float32(cpu),
 		}
-		data = append(data, dataPoint)
+		cpuData = append(cpuData, cpuDataPoint)
+
+		memDataPoint := models.PrometheusDataSetResponseItem{
+			Timestamp: timestamp,
+			Metric:    float32(memory),
+		}
+		memData = append(memData, memDataPoint)
 	}
 
-	dataFrame := &models.PrometheusDataSetResponse{
-		PromItemList: data,
+	cpuDataFrame := &models.PrometheusDataSetResponse{
+		PromItemList: cpuData,
 	}
-	return dataFrame, nil
+	memDataFrame := &models.PrometheusDataSetResponse{
+		PromItemList: memData,
+	}
+	return cpuDataFrame, memDataFrame, nil
 }
