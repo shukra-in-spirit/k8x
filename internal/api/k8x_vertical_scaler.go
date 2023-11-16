@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/shukra-in-spirit/k8x/internal/controllers"
 	"github.com/shukra-in-spirit/k8x/internal/helpers"
 	"github.com/shukra-in-spirit/k8x/internal/models"
 )
@@ -17,7 +18,7 @@ func (listener *K8ManagerAPI) verticalScaler(ctx context.Context, id string) {
 	defer ticker.Stop()
 	for range ticker.C {
 
-		avg_cpu, avg_mem, err := listener.commonCreateFunc(ctx, id, "modified_create_lambda_function")
+		avg_cpu, avg_mem, err := listener.commonCreateFunc(ctx, id, "c")
 		if err != nil {
 			log.Printf("failed fetching data and retraining model from create lambda: %v\n", err)
 
@@ -53,15 +54,29 @@ func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName
 	currTime := time.Now()
 	startTime := currTime.AddDate(0, 0, -14)
 
+	depl, ns := helpers.DecomposeServiceID(id)
+
+	container, err := listener.kubeClient.GetContainerNameFromDeployment(ctx, depl, ns)
+	if err != nil {
+		return "", "", fmt.Errorf("failed fetching container name for service %s: %v", id, err)
+	}
+
 	// Fetch 2 weeks data from prom.
-	promData, err := listener.promClient.GetPrometheusDataWithinRange(ctx, "", startTime, currTime, "")
+	promCPU, err := listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m")
 	if err != nil {
 		return "", "", fmt.Errorf("failed fetching data from prometheus: %v", err)
 	}
 
+	promMem, err := listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(ns, "2m", container), startTime, currTime, "20m")
+	if err != nil {
+		return "", "", fmt.Errorf("failed fetching data from prometheus: %v", err)
+	}
+
+	promData := helpers.ProcessPromData(id, promCPU.PromItemList, promMem.PromItemList)
+
 	// Push to DB.
 	// err = listener.dbClient.AddData(data)
-	err = listener.dbClient.AddDataBatch(&promData.PromItemList, id)
+	err = listener.dbClient.AddDataBatch(promData, id)
 	if err != nil {
 		return "", "", fmt.Errorf("batch DB write failed: %v", err)
 	}
@@ -75,7 +90,7 @@ func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName
 	}
 
 	// Call create lambda.
-	output, err := listener.lambdaClient.TriggerCreateLambdaWithEvent(payload, funcName)
+	output, err := listener.lambdaClient.TriggerLambdaWithEvent(payload, funcName)
 	if err != nil {
 		return "", "", fmt.Errorf("lambda trigger failed: %v", err)
 	}

@@ -18,7 +18,9 @@ import (
 
 type K8Manager interface {
 	AddServiceTok8x(ginCtx *gin.Context)
-	StartPredictionOfService(ginCtx *gin.Context)
+	StartPredictionService(ginCtx *gin.Context)
+	ScaleOnPredict(ginCtx *gin.Context)
+	GetInfo(ginCtx *gin.Context)
 }
 
 type K8ManagerAPI struct {
@@ -48,7 +50,7 @@ func (listener *K8ManagerAPI) AddServiceTok8x(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	_, _, err := listener.commonCreateFunc(ctx, serviceID, "change-lambda-func-name")
+	_, _, err := listener.commonCreateFunc(ctx, serviceID, "c")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -103,7 +105,7 @@ func (listener *K8ManagerAPI) AddServiceTok8x(c *gin.Context) {
 	// }
 }
 
-func (listener *K8ManagerAPI) StartPredictionOfService(c *gin.Context) {
+func (listener *K8ManagerAPI) StartPredictionService(c *gin.Context) {
 	serviceID := c.Param("service_id")
 	message := fmt.Sprintf("pocessing the service id %s", serviceID)
 
@@ -127,18 +129,35 @@ func (listener *K8ManagerAPI) triggerPredict(ctx context.Context, id string) {
 }
 
 func (listener *K8ManagerAPI) performOp(ctx context.Context, id string) {
-	// Fetch 3 hours data from prom.
-	promData, err := listener.promClient.GetPrometheusData(ctx, "")
+	deployment, namespace := helpers.DecomposeServiceID(id)
+
+	container, err := listener.kubeClient.GetContainerNameFromDeployment(ctx, deployment, namespace)
 	if err != nil {
-		log.Printf("failed fetching data from prometheus: %v\n", err)
+		log.Printf("failed fetching container name for service %s: %v\n", id, err)
 
 		return
 	}
 
-	input := models.LambdaRequest{ServiceID: id, Params: models.TuningParams{}, History: *promData}
+	// Fetch 3 hours data from prom.
+	promCPU, err := listener.promClient.GetPrometheusData(ctx, controllers.BuildPromQueryForCPU(namespace, "2m", container))
+	if err != nil {
+		log.Printf("failed fetching cpu data from prometheus: %v\n", err)
+
+		return
+	}
+
+	promMem, err := listener.promClient.GetPrometheusData(ctx, controllers.BuildPromQueryForMemory(namespace, "2m", container))
+	if err != nil {
+		log.Printf("failed fetching memory data from prometheus: %v\n", err)
+
+		return
+	}
+
+	promData := helpers.PrepareHistoryData(promCPU.PromItemList, promMem.PromItemList)
+
+	input := models.LambdaRequest{ServiceID: id, Params: models.TuningParams{}, History: promData}
 
 	// Get the current resource utilization -> request cpu
-	deployment, namespace := helpers.DecomposeServiceID(id)
 	request_cpu, _, err := listener.kubeClient.GetRequestValue(ctx, deployment, namespace)
 	if err != nil {
 		log.Printf("failed getting current request values: %v\n", err)
@@ -155,7 +174,7 @@ func (listener *K8ManagerAPI) performOp(ctx context.Context, id string) {
 	}
 
 	// Call predict lambda
-	output, err := listener.lambdaClient.TriggerCreateLambdaWithEvent(payload, "change-lambda-func-name")
+	output, err := listener.lambdaClient.TriggerLambdaWithEvent(payload, "p")
 	if err != nil {
 		log.Printf("lambda trigger failed: %v\n", err)
 

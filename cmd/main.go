@@ -33,10 +33,15 @@ func main() {
 
 	kubeManager := api.NewK8Manager(dbHandler, promHandler, lambdaHandler, kubeHandler)
 
-	// create the endpoints
+	// create the endpoints.
 	router.POST("/:service_id", kubeManager.AddServiceTok8x)
-	router.POST("/:service_id/start", kubeManager.StartPredictionOfService)
+
+	router.POST("/:service_id/start", kubeManager.StartPredictionService)
+
+	// unused..
 	router.POST("/:service_id/hscale", kubeManager.ScaleOnPredict)
+
+	router.GET("/:service_id/stats", kubeManager.GetInfo)
 
 	// run it on port 8585
 	router.Run(":8585")

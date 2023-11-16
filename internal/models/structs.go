@@ -14,7 +14,13 @@ type PrometheusDataSetResponse struct {
 type LambdaRequest struct {
 	ServiceID string `json:"service_id"`
 	Params TuningParams
-	History PrometheusDataSetResponse
+	History []*History `json:"items"`
+}
+
+type History struct {
+	Timestamp time.Time `json:"timestamp"`
+	CPU       float32   `json:"cpu"`
+	Memory    float32   `json:"memory"`
 }
 
 type TuningParams struct {
@@ -32,3 +38,11 @@ type LambdaResponse struct {
 	StatusCode int            `json:"statusCode"`
 	Body       LambdaRespBody `json:"body"`
 }
+
+type PromData struct {
+	ServiceID string    `json:"service_id"`
+	Timestamp time.Time `json:"timestamp"`
+	CPU       float32   `json:"cpu"`
+	Memory    float32   `json:"memory"`
+}
+

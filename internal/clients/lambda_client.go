@@ -12,7 +12,7 @@ import (
 )
 
 type NewLambdaInterface interface {
-	TriggerCreateLambdaWithEvent(data []byte, functionName string) (*models.LambdaRespBody, error)
+	TriggerLambdaWithEvent(data []byte, functionName string) (*models.LambdaRespBody, error)
 }
 
 type lambdaConfig struct {
@@ -25,7 +25,7 @@ func NewLamdaClient(client lambdaiface.LambdaAPI) *lambdaConfig {
 	}
 }
 
-func (e *lambdaConfig) TriggerCreateLambdaWithEvent(data []byte, functionName string) (*models.LambdaRespBody, error) {
+func (e *lambdaConfig) TriggerLambdaWithEvent(data []byte, functionName string) (*models.LambdaRespBody, error) {
 	input := &lambda.InvokeInput{
 		FunctionName: aws.String(functionName),
 		Payload:      data,

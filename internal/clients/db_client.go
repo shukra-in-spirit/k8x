@@ -3,7 +3,6 @@ package clients
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -16,16 +15,9 @@ const (
 	tableName = "b_k8x_t"
 )
 
-type PromData struct {
-	ServiceID string    `json:"service_id"`
-	Timestamp time.Time `json:"timestamp"`
-	CPU       float32   `json:"cpu"`
-	Memory    float32   `json:"memory"`
-}
-
 type PromStorer interface {
-	AddData(data *PromData) error
-	AddDataBatch(dataList *[]models.PrometheusDataSetResponseItem, serviceID string) error
+	AddData(data *models.PromData) error
+	AddDataBatch(dataList []*models.PromData, serviceID string) error
 }
 
 type promStore struct {
@@ -38,7 +30,7 @@ func NewPromStore(client dynamodbiface.DynamoDBAPI) *promStore {
 	}
 }
 
-func (e *promStore) AddData(data *PromData) error {
+func (e *promStore) AddData(data *models.PromData) error {
 	inputItems, err := dynamodbattribute.MarshalMap(data)
 	if err != nil {
 		return fmt.Errorf("failed marshalling input to dynamoDB attribute format. %v", err)
@@ -57,27 +49,22 @@ func (e *promStore) AddData(data *PromData) error {
 	return nil
 }
 
-func (e *promStore) AddDataBatch(dataList *[]models.PrometheusDataSetResponseItem, serviceID string) error {
+func (e *promStore) AddDataBatch(dataList []*models.PromData, serviceID string) error {
 	written := 0
 	batchSize := 25 // DynamoDB allows a maximum batch size of 25 items.
 	start := 0
 	end := start + batchSize
-	for start < len(*dataList) {
+
+	for start < len(dataList) {
 		var writeReqs []*dynamodb.WriteRequest
-		if end > len(*dataList) {
-			end = len(*dataList)
+		if end > len(dataList) {
+			end = len(dataList)
 		}
 
-		for _, data := range (*dataList)[start:end] {
-			dataItem := &PromData{
-				ServiceID: serviceID,
-				Timestamp: data.Timestamp,
-				CPU:       data.CPU,
-				Memory:    data.Memory,
-			}
-			item, err := dynamodbattribute.MarshalMap(dataItem)
+		for _, data := range dataList[start:end] {
+			item, err := dynamodbattribute.MarshalMap(data)
 			if err != nil {
-				log.Printf("error in marshalling data %v for batch writing: %v\n", dataItem, err)
+				return fmt.Errorf("error in marshalling data %v for batch writing: %v", data, err)
 			} else {
 				writeReqs = append(
 					writeReqs,
@@ -92,7 +79,7 @@ func (e *promStore) AddDataBatch(dataList *[]models.PrometheusDataSetResponseIte
 
 		_, err := e.client.BatchWriteItem(input)
 		if err != nil {
-			log.Printf("failed to perform batch write: %v\n", err)
+			return fmt.Errorf("failed to perform batch write: %v", err)
 		} else {
 			written += len(writeReqs)
 		}
@@ -100,7 +87,7 @@ func (e *promStore) AddDataBatch(dataList *[]models.PrometheusDataSetResponseIte
 		end += batchSize
 	}
 
-	log.Printf("successfully performed batch write on %v, got= %v\n", written, len(*dataList))
+	log.Printf("successfully performed batch write on %v, got= %v\n", written, len(dataList))
 
 	return nil
 }
