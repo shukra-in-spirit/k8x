@@ -7,3 +7,4 @@
 !/lambda/predict_lambda/lambda_function.py
 !/lambda/predict_lambda/local_trigger.py
 vendor
+data
