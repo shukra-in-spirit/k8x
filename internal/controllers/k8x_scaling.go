@@ -12,6 +12,7 @@ import (
 )
 
 type ScalingFunctions interface {
+	GetRequestValue(ctx context.Context, deployment_name string, namespace_name string) (string, string, error)
 	SetReplicaValue(ctx context.Context, deployment_name string, namespace_name string, replica_value int) error
 	SetRequestValue(ctx context.Context, deployment_name string, namespace_name string, cpu_request_value float32, memory_request_value float32) error
 	SetLimitValue(ctx context.Context, deployment_name string, namespace_name string, cpu_limit_value float32, memory_limit_value float32) error
@@ -120,4 +121,22 @@ func (kc *KubeClient) SetLimitValue(ctx context.Context, deployment_name string,
 	}
 
 	return nil
+}
+
+func (kc *KubeClient) GetRequestValue(ctx context.Context, deployment_name string, namespace_name string) (string, string, error) {
+	deploymentsClient := kc.kubeClientset.AppsV1().Deployments(namespace_name)
+
+	deployment, err := deploymentsClient.Get(ctx, deployment_name, metav1.GetOptions{})
+	if err != nil {
+		return "", "", fmt.Errorf("Error getting deployment %s: %v", deployment_name, err)
+	}
+
+	if len(deployment.Spec.Template.Spec.Containers) == 0 {
+		return "", "", fmt.Errorf("No containers found in the deployment %s", deployment_name)
+	}
+
+	cpuRequest := deployment.Spec.Template.Spec.Containers[0].Resources.Requests[v1.ResourceCPU]
+	memoryRequest := deployment.Spec.Template.Spec.Containers[0].Resources.Requests[v1.ResourceMemory]
+
+	return cpuRequest.String(), memoryRequest.String(), nil
 }
