@@ -13,8 +13,8 @@ type PrometheusDataSetResponse struct {
 
 type LambdaRequest struct {
 	ServiceID string `json:"service_id"`
-	Params TuningParams
-	History []*History `json:"items"`
+	Params    TuningParams
+	History   []*History `json:"history"`
 }
 
 type History struct {
@@ -24,7 +24,7 @@ type History struct {
 }
 
 type TuningParams struct {
-	Epochs string `json:"epochs"`
+	Epochs       string `json:"epochs"`
 	HiddenLayers string `json:"hidden_layers"`
 }
 
@@ -45,4 +45,3 @@ type PromData struct {
 	CPU       float32   `json:"cpu"`
 	Memory    float32   `json:"memory"`
 }
-
