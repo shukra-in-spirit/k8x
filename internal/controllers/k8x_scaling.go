@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type ScalingFunctions interface {
@@ -21,6 +22,22 @@ type ScalingFunctions interface {
 
 type KubeClient struct {
 	kubeClientset *kubernetes.Clientset
+}
+
+func NewKubeClientLocal() *KubeClient {
+	// Use the current context in kubeconfig
+	clientConfig, err := clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
+
+	// Create the clientset
+	clientset, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return nil
+	}
+
+	kubeclient := KubeClient{
+		kubeClientset: clientset,
+	}
+	return &kubeclient
 }
 
 func NewKubeClient() *KubeClient {

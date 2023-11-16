@@ -8,3 +8,6 @@
 !/lambda/predict_lambda/local_trigger.py
 vendor
 data
+ui/local.py
+ui/__pycache__
+cmd2

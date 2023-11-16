@@ -2,7 +2,7 @@ import customtkinter
 import os
 from PIL import Image
 import popups
-import requests
+import time
 
 
 def AuditLogs(log):
@@ -14,13 +14,24 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
         super().__init__(master, **kwargs)
         self.grid_columnconfigure(0, weight=1)
         self.label_list = []
+        self.req_label_list = []      #new
+        self.container_label_list = [] #new
+        self.ns_label_list = []        #new
         self.button_list = []
         self.commandStop=commandStop
         self.commandSimulate=commandSimulate
         self.button_counter=0
+        self.label_counter=0
 
-    def add_item(self, item, image=None):
-        label = customtkinter.CTkLabel(self, text=item, image=image, compound="left", padx=15, anchor="w")
+    def add_item(self, item, namespace, cpuRequest, memRequest, container, image=None):
+        time.sleep(2)
+        label = customtkinter.CTkLabel(self, text=item, image=image, compound="left", padx=15, anchor="w", font=customtkinter.CTkFont(size=14, weight="bold"))
+        namespaceString = "ns: " + namespace
+        namespaceLabel = customtkinter.CTkLabel(self, text=namespaceString, padx=15, anchor="w")
+        requestString = "cpu: " + cpuRequest + ", mem: " + memRequest
+        requestLabel = customtkinter.CTkLabel(self, text=requestString, padx=15, anchor="w")
+        containerString = "container: " + container
+        containerLabel = customtkinter.CTkLabel(self, text=containerString, padx=15, anchor="w")
         buttonSimulate = customtkinter.CTkButton(self, text="Simulate", width=100, height=24)
         buttonStop = customtkinter.CTkButton(self, text="Stop", width=100, height=24)
         if self.commandStop is not None:
@@ -28,11 +39,17 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
         if self.commandSimulate is not None:
             buttonSimulate.configure(command=lambda: self.commandSimulate(item))
         label.grid(row=len(self.label_list), column=0, pady=(20, 30), sticky="w")
-        buttonSimulate.grid(row=len(self.label_list), column=1, pady=(20, 30), padx=(0,10))
-        buttonStop.grid(row=len(self.label_list), column=2, pady=(20, 30), padx=(0,30))
+        namespaceLabel.grid(row=len(self.label_list), column=1, pady=(20, 30), sticky="w")
+        requestLabel.grid(row=len(self.label_list), column=2, pady=(20, 30), sticky="w")
+        containerLabel.grid(row=len(self.label_list), column=3, pady=(20, 30), sticky="w")
+        buttonSimulate.grid(row=len(self.label_list), column=4, pady=(20, 30), padx=(0,10))
+        buttonStop.grid(row=len(self.label_list), column=5, pady=(20, 30), padx=(0,30))
         self.label_list.append(label)
         self.button_list.append(buttonSimulate)
         self.button_list.append(buttonStop)
+        self.container_label_list.append(containerLabel)
+        self.req_label_list.append(requestLabel)
+        self.ns_label_list.append(namespaceLabel)
         print(self.label_list)
         print(self.button_list)
 
@@ -42,6 +59,10 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
             self.button_counter=self.button_counter + 1
             button_stop = self.button_list[self.button_counter]
             self.button_counter=self.button_counter + 1
+            ns_label = self.ns_label_list[self.label_counter]
+            req_label = self.req_label_list[self.label_counter]
+            container_label = self.container_label_list[self.label_counter]
+            self.label_counter = self.label_counter + 1
             if label.cget("text") == item:
                 print(self.button_counter)
                 label.destroy()
@@ -50,11 +71,18 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
                 self.button_list.remove(button_simulate)
                 button_stop.destroy()
                 self.button_list.remove(button_stop)
+                ns_label.destroy()
+                self.ns_label_list.remove(ns_label)
+                req_label.destroy()
+                self.req_label_list.remove(req_label)
+                container_label.destroy()
+                self.container_label_list.remove(container_label)
         self.button_counter=0
         return
     
-    def open_simulation_panel(self, item):
-        popups.open_popup_simulation(app, item)
+    def open_simulation_panel(self, app, item):
+        simulationPopup = popups.SimulationPopup()
+        simulationPopup.open_popup_simulation(app, item)
         return
 
 
@@ -94,13 +122,21 @@ class App(customtkinter.CTk):
 
         # create scrollable label and button frame
         current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.status_label = customtkinter.CTkLabel(self, text="Offline - Not Connected", anchor="w")
+        self.status_label.grid(row=0, column=2, padx=20, pady=(10, 0))
         self.scrollable_label_button_frame = ScrollableLabelButtonFrame(master=self, width=900, height=500,commandStop=self.label_button_frame_stop_event,commandSimulate=self.label_button_frame_simulate_event, corner_radius=0)
-        self.scrollable_label_button_frame.grid(row=0, column=2, padx=10, pady=10, sticky="nsew")
-        for i in range(20):  # add items with images
-            self.scrollable_label_button_frame.add_item(f"container number {i}", image=customtkinter.CTkImage(Image.open(os.path.join(current_dir, "test_images", "chat_light.png"))))
-    
+        self.scrollable_label_button_frame.grid(row=1, column=2, padx=10, pady=10, sticky="nsew")
+        # for i in range(20):  # add items with images
+        #     self.scrollable_label_button_frame.add_item(f"container number {i}", image=customtkinter.CTkImage(Image.open(os.path.join(current_dir, "test_images", "chat_light.png"))))
+    def set_status(self, status):
+        time.sleep(1)
+        self.status_label.configure(text=status)
+
+    def call_add_item(self, item, namespace, cpuRequest, memRequest, container, image):
+        self.scrollable_label_button_frame.add_item(item, namespace, cpuRequest, memRequest, container, image)
+
     def label_button_frame_simulate_event(self, item):
-        self.scrollable_label_button_frame.open_simulation_panel(item)
+        self.scrollable_label_button_frame.open_simulation_panel(app, item)
 
     def label_button_frame_stop_event(self, item):
         self.scrollable_label_button_frame.remove_item(item)
@@ -114,7 +150,8 @@ class App(customtkinter.CTk):
 
     def connect_button_event(self):
         print("sidebar_button click")
-        popups.open_popup_connect(app)
+        connectPopup = popups.ConnectPopup()
+        connectPopup.open_popup_connect(app)
     
     def add_button_event(self):
         print('add service button clicked')
