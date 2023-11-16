@@ -3,6 +3,10 @@ import os
 from PIL import Image
 
 
+def AuditLogs(log):
+    with open("../logs.txt", 'a+') as f:
+        f.write(log + "\n")
+
 class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
     def __init__(self, master, command=None, **kwargs):
         super().__init__(master, **kwargs)

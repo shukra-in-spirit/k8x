@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/shukra-in-spirit/k8x/internal/clients"
+	"github.com/shukra-in-spirit/k8x/internal/models"
 )
 
 func DecomposeServiceID(service_id string) (string, string) {
@@ -26,7 +26,7 @@ func DecomposeServiceID(service_id string) (string, string) {
 }
 
 // call the local lambda methods
-func TriggerLocalCreateLambdaWithEvent(data []byte, functionName string) (*clients.LambdaRespBody, error) {
+func TriggerLocalCreateLambdaWithEvent(data []byte, functionName string) (*models.LambdaRespBody, error) {
 	var lambdaFilePath string
 	// Command to run the Python script
 	if functionName == "c" {
@@ -40,13 +40,41 @@ func TriggerLocalCreateLambdaWithEvent(data []byte, functionName string) (*clien
 	// Run the command
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return &clients.LambdaRespBody{}, fmt.Errorf("error running local lambda: %v", err)
+		return &models.LambdaRespBody{}, fmt.Errorf("error running local lambda: %v", err)
 	}
 
-	var response clients.LambdaRespBody
+	var response models.LambdaRespBody
 	err = json.Unmarshal(output, &response)
 	if err != nil {
-		return &clients.LambdaRespBody{}, fmt.Errorf("error while unmarshalling lambda output: %v", err)
+		return &models.LambdaRespBody{}, fmt.Errorf("error while unmarshalling lambda output: %v", err)
 	}
 	return &response, nil
+}
+
+func ProcessPromData(id string, l1 []models.PrometheusDataSetResponseItem, l2 []models.PrometheusDataSetResponseItem) []*models.PromData {
+	promData := []*models.PromData{}
+
+	for _, cpu := range l1 {
+		for _, mem := range l2 {
+			if cpu.Timestamp == mem.Timestamp {
+				promData = append(promData, &models.PromData{ServiceID: id, Timestamp: cpu.Timestamp, CPU: cpu.Metric, Memory: mem.Metric})
+			}
+		}
+	}
+
+	return promData
+}
+
+func PrepareHistoryData(l1 []models.PrometheusDataSetResponseItem, l2 []models.PrometheusDataSetResponseItem) []*models.History {
+	promData := []*models.History{}
+
+	for _, cpu := range l1 {
+		for _, mem := range l2 {
+			if cpu.Timestamp == mem.Timestamp {
+				promData = append(promData, &models.History{Timestamp: cpu.Timestamp, CPU: cpu.Metric, Memory: mem.Metric})
+			}
+		}
+	}
+
+	return promData
 }

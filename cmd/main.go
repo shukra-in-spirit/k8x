@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -30,22 +29,20 @@ func main() {
 	dbHandler := clients.NewPromStore(dynamodb.New(session))
 	promHandler := controllers.NewPrometheusInstance(conf.PromUrl)
 	lambdaHandler := clients.NewLamdaClient(lambda.New(session))
+	kubeHandler := controllers.NewKubeClient()
 
-	kubeManager := api.NewK8Manager(dbHandler, promHandler, lambdaHandler)
+	kubeManager := api.NewK8Manager(dbHandler, promHandler, lambdaHandler, kubeHandler)
 
-	// create the endpoints
+	// create the endpoints.
 	router.POST("/:service_id", kubeManager.AddServiceTok8x)
-	router.POST("/:service_id/start", startPredictionOfService)
+
+	router.POST("/:service_id/start", kubeManager.StartPredictionService)
+
+	// unused..
+	router.POST("/:service_id/hscale", kubeManager.ScaleOnPredict)
+
+	router.GET("/:service_id/stats", kubeManager.GetInfo)
 
 	// run it on port 8585
 	router.Run(":8585")
-}
-
-func startPredictionOfService(c *gin.Context) {
-	serviceID := c.Param("service_id")
-	message := fmt.Sprintf("got the service id %s", serviceID)
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": message,
-	})
 }

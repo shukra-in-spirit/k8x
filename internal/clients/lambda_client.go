@@ -8,25 +8,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
+	"github.com/shukra-in-spirit/k8x/internal/models"
 )
 
 type NewLambdaInterface interface {
-	TriggerCreateLambdaWithEvent(data []byte, functionName string) (*LambdaRespBody, error)
+	TriggerLambdaWithEvent(data []byte, functionName string) (*models.LambdaRespBody, error)
 }
 
 type lambdaConfig struct {
 	client lambdaiface.LambdaAPI
-}
-
-type LambdaRespBody struct {
-	CPU      string `json:"cpu"`
-	Memory   string `json:"memory"`
-	Replicas string `json:"replicas"`
-}
-
-type LambdaResponse struct {
-	StatusCode int            `json:"statusCode"`
-	Body       LambdaRespBody `json:"body"`
 }
 
 func NewLamdaClient(client lambdaiface.LambdaAPI) *lambdaConfig {
@@ -35,7 +25,7 @@ func NewLamdaClient(client lambdaiface.LambdaAPI) *lambdaConfig {
 	}
 }
 
-func (e *lambdaConfig) TriggerCreateLambdaWithEvent(data []byte, functionName string) (*LambdaRespBody, error) {
+func (e *lambdaConfig) TriggerLambdaWithEvent(data []byte, functionName string) (*models.LambdaRespBody, error) {
 	input := &lambda.InvokeInput{
 		FunctionName: aws.String(functionName),
 		Payload:      data,
@@ -46,7 +36,7 @@ func (e *lambdaConfig) TriggerCreateLambdaWithEvent(data []byte, functionName st
 		return nil, fmt.Errorf("failed to trigger lambda. %v", err)
 	}
 
-	var resp LambdaResponse
+	var resp models.LambdaResponse
 
 	err = json.Unmarshal(output.Payload, &resp)
 	if err != nil {

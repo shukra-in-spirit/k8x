@@ -1,5 +1,5 @@
 package constants
 
 const (
-	DefaultPrometheusTimeRange = 2 * 60 * 60
+	DefaultPrometheusTimeRange = 3 * 60 * 60
 )
