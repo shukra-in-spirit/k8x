@@ -59,3 +59,17 @@ func (e *lambdaConfig) TriggerCreateLambdaWithEvent(data []byte, functionName st
 
 	return &resp.Body, nil
 }
+
+// TODO:
+// UI - create the popup forms for both
+// UI - integrations with the forms
+// Backend - Complete code review
+// Backend - Start testing end to end
+// infrastructure - installed helm, python, k8s, mysql / kubectl - deployment.yaml
+// Data - clean -  5 services
+// Visualization - UI - live data in card
+//                    - (ns) actual values in pod
+// Visualization - UI - hardcoded - simulation
+// Audit Logs    - UI
+// VIDEO - 1 hour
+// PRESENTATION - 10-12
