@@ -14,7 +14,7 @@ kubectl get pods
 kubectl desribe pod [POD_NAME]
 # check the image name at the bottom
 docker pull [IMAGE_NAME]
-minikube load image [IMAGE_NAME]
+minikube image load [IMAGE_NAME]
 ```
 3. Repeat until all pods are in running state.
 
