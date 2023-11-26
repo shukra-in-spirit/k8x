@@ -17,7 +17,9 @@ docker pull [IMAGE_NAME]
 minikube load image [IMAGE_NAME]
 ```
 3. Repeat until all pods are in running state.
-   
+
+### Tests
+
 Please follow the following steps to test:
 
 1. Run the following commands from the root of the repository.
@@ -28,6 +30,6 @@ kubectl get pods -n test-namespace
 ```
 2. Run the command `go run functional_test/dummy_main.go`.
 
-### Tests
-
+### Functional Tests
 1. The scaling interface created on top of the golang kubernetes client has been tested. All the methods in the interface are called and their response time logged in milliseconds.
+
