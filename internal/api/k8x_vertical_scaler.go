@@ -70,8 +70,8 @@ func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName
 		promCPU, err1 = controllers.GetCSVData(ctx, id+"-cpu-train.csv")
 		promMem, err2 = controllers.GetCSVData(ctx, id+"-mem-train.csv")
 	} else {
-		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m")
-		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(ns, "2m", container), startTime, currTime, "20m")
+		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m", "cpu")
+		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(ns, "2m", container), startTime, currTime, "20m", "memory")
 	}
 
 	// promCPU, err = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m")

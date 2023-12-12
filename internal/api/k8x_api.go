@@ -150,8 +150,8 @@ func (listener *K8ManagerAPI) performOp(ctx context.Context, id string) {
 		promCPU, err1 = controllers.GetCSVData(ctx, id+"-cpu-pred.csv")
 		promMem, err2 = controllers.GetCSVData(ctx, id+"-mem-pred.csv")
 	} else {
-		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(namespace, "2m", container), startTime, currTime, "20m")
-		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(namespace, "2m", container), startTime, currTime, "20m")
+		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(namespace, "2m", container), startTime, currTime, "20m", "cpu")
+		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(namespace, "2m", container), startTime, currTime, "20m", "memory")
 	}
 
 	// promCPU, err := listener.promClient.GetPrometheusData(ctx, controllers.BuildPromQueryForCPU(namespace, "2m", container))

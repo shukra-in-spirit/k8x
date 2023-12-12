@@ -1,0 +1,30 @@
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    meta.helm.sh/release-name: prometheus
+    meta.helm.sh/release-namespace: default
+  labels:
+    app: kube-eagle
+    app.kubernetes.io/managed-by: Helm
+    chart: kube-eagle-2.0.0
+    heritage: Helm
+    release: prometheus
+  name: kube-eagle
+  namespace: default
+spec:
+  endpoints:
+  - honorLabels: true
+    port: http
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app: kube-eagle
+      release: kube-eagle
+  endpoints:
+    - port: "http"
+      path: /metrics

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/shukra-in-spirit/k8x/internal/models"
 )
@@ -43,11 +42,6 @@ func (csvFile *CSVFile) GetCSVDataCPUandMem(ctx context.Context) (*models.Promet
 	var cpuData []models.PrometheusDataSetResponseItem
 	var memData []models.PrometheusDataSetResponseItem
 	for _, record := range records {
-		// Parse timestamp, CPU, and memory values from the CSV record
-		timestamp, err := time.Parse(time.RFC3339, record[0])
-		if err != nil {
-			return nil, nil, fmt.Errorf("Error parsing timestamp: %v", err)
-		}
 
 		cpu, err := strconv.ParseFloat(record[1], 32)
 		if err != nil {
@@ -61,14 +55,12 @@ func (csvFile *CSVFile) GetCSVDataCPUandMem(ctx context.Context) (*models.Promet
 
 		// Create a Data struct and append it to the slice
 		cpuDataPoint := models.PrometheusDataSetResponseItem{
-			Timestamp: timestamp,
-			Metric:    float32(cpu),
+			Metric: float32(cpu),
 		}
 		cpuData = append(cpuData, cpuDataPoint)
 
 		memDataPoint := models.PrometheusDataSetResponseItem{
-			Timestamp: timestamp,
-			Metric:    float32(memory),
+			Metric: float32(memory),
 		}
 		memData = append(memData, memDataPoint)
 	}
@@ -97,11 +89,6 @@ func GetCSVData(ctx context.Context, filePath string) (*models.PrometheusDataSet
 
 	var data []models.PrometheusDataSetResponseItem
 	for _, record := range records {
-		// Parse timestamp, CPU, and memory values from the CSV record
-		timestamp, err := time.Parse(time.RFC3339, record[0])
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing timestamp: %v", err)
-		}
 
 		metric, err := strconv.ParseFloat(record[2], 32)
 		if err != nil {
@@ -110,8 +97,7 @@ func GetCSVData(ctx context.Context, filePath string) (*models.PrometheusDataSet
 
 		// Create a Data struct and append it to the slice
 		dataPoint := models.PrometheusDataSetResponseItem{
-			Timestamp: timestamp,
-			Metric:    float32(metric),
+			Metric: float32(metric),
 		}
 		data = append(data, dataPoint)
 

@@ -3,11 +3,11 @@ package models
 import "time"
 
 type PrometheusDataSetResponseItem struct {
-	Timestamp time.Time `json:"timestamp"`
-	Metric    float32   `json:"metric"`
+	Metric float32 `json:"metric"`
 }
 
 type PrometheusDataSetResponse struct {
+	PromDataType string                          `json:"data_type"`
 	PromItemList []PrometheusDataSetResponseItem `json:"items"`
 }
 
@@ -40,8 +40,7 @@ type LambdaResponse struct {
 }
 
 type PromData struct {
-	ServiceID string    `json:"service_id"`
-	Timestamp time.Time `json:"timestamp"`
-	CPU       float32   `json:"cpu"`
-	Memory    float32   `json:"memory"`
+	ServiceID string  `json:"service_id"`
+	CPU       float32 `json:"cpu"`
+	Memory    float32 `json:"memory"`
 }

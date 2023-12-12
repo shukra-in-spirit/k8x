@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -15,8 +16,8 @@ import (
 // based on https://prometheus.io/docs/prometheus/latest/querying/api/
 
 type PrometheusFunctions interface {
-	GetPrometheusData(ctx context.Context, promQuery string) (*models.PrometheusDataSetResponse, error)
-	GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps string) (*models.PrometheusDataSetResponse, error)
+	GetPrometheusData(ctx context.Context, promQuery string, queryType string) (*models.PrometheusDataSetResponse, error)
+	GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps string, queryType string) (*models.PrometheusDataSetResponse, error)
 }
 
 type PrometheusInstance struct {
@@ -30,28 +31,29 @@ func NewPrometheusInstance(promUrl string) *PrometheusInstance {
 }
 
 func BuildPromQueryForCPU(namespace_name string, rate string, container_name string) string {
-	pq_cpu := "sum(rate(container_cpu_usage_seconds_total{container=\"" + container_name + "\",namespace=\"" + namespace_name + "\"}[" + rate + "]))"
+	pq_cpu := "rate(eagle_pod_container_resource_usage_cpu_cores{exported_container=\"" + container_name + "\",exported_namespace=\"" + namespace_name + "\"}[" + rate + "])"
 	return pq_cpu
 }
 
 func BuildPromQueryForMemory(namespace_name string, rate string, container_name string) string {
-	pq_memory := "sum(rate(container_memory_usage_bytes{container=\"" + container_name + "\",namespace=\"" + namespace_name + "\"}[" + rate + "]))"
+	pq_memory := "rate(eagle_pod_container_resource_usage_memory_bytes{exported_container=\"" + container_name + "\",exported_namespace=\"" + namespace_name + "\"}[" + rate + "])"
 	return pq_memory
 }
 
-func (prom *PrometheusInstance) GetPrometheusData(ctx context.Context, promQuery string) (*models.PrometheusDataSetResponse, error) {
+func (prom *PrometheusInstance) GetPrometheusData(ctx context.Context, promQuery string, queryType string) (*models.PrometheusDataSetResponse, error) {
 	endTime := time.Now()
 	startTimeInt := endTime.Unix() - constants.DefaultPrometheusTimeRange
 	startTime := time.Unix(startTimeInt, 0)
 
-	responseDataFrame, err := prom.GetPrometheusDataWithinRange(ctx, promQuery, startTime, endTime, "")
+	responseDataFrame, err := prom.GetPrometheusDataWithinRange(ctx, promQuery, startTime, endTime, "", queryType)
 	if err != nil {
+		fmt.Errorf("%v", err)
 		return &models.PrometheusDataSetResponse{}, nil
 	}
 	return responseDataFrame, nil
 }
 
-func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps string) (*models.PrometheusDataSetResponse, error) {
+func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps string, queryType string) (*models.PrometheusDataSetResponse, error) {
 	// Create a JSON payload with the query_range parameters
 	queryRangeJSON := map[string]interface{}{
 		"query":  promQuery,
@@ -62,12 +64,14 @@ func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context
 	}
 	queryRangeBytes, err := json.Marshal(queryRangeJSON)
 	if err != nil {
+		fmt.Errorf("%v", err)
 		return nil, err
 	}
 
 	// Create a POST request to the Prometheus query_range API
 	req, err := http.NewRequest("POST", prom.url, bytes.NewBuffer(queryRangeBytes))
 	if err != nil {
+		fmt.Errorf("%v", err)
 		return nil, err
 	}
 
@@ -78,6 +82,7 @@ func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Errorf("%v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -85,15 +90,20 @@ func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context
 	// Read the response body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Errorf("%v", err)
 		return nil, err
 	}
 
-	// Unmarshal the JSON response into the QueryResult struct
-	var result models.PrometheusDataSetResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return nil, err
+	// Create an instance of prometheusDataItemList
+	list := models.PrometheusDataSetResponse{
+		PromItemList: make([]models.PrometheusDataSetResponseItem, 0, len(body)),
+		PromDataType: queryType,
 	}
 
-	return &result, nil
+	// Iterate over the byte slice and fill the list
+	for _, b := range body {
+		list.PromItemList = append(list.PromItemList, models.PrometheusDataSetResponseItem{Metric: float32(b)})
+	}
+
+	return &list, nil
 }
