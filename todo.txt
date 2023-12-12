@@ -1,0 +1,6 @@
+- handle if request value is not set for cpu and memory
+  if the cpu and memory value is not set then the method getRequestValue in the scaling controller returns 0,0 for the cpu and mem value.
+  This should be handled
+- check the scaling conversion value
+  eg: if we are passing 300.00 as a float32 value for cpu and mem is it going to be 300Mi and 300m which are accepted values.
+- same point as above for limit too

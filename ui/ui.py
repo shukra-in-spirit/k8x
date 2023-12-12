@@ -24,7 +24,7 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
         self.label_counter=0
 
     def add_item(self, item, namespace, cpuRequest, memRequest, container, image=None):
-        time.sleep(2)
+        time.sleep(4)
         label = customtkinter.CTkLabel(self, text=item, image=image, compound="left", padx=15, anchor="w", font=customtkinter.CTkFont(size=14, weight="bold"))
         namespaceString = "ns: " + namespace
         namespaceLabel = customtkinter.CTkLabel(self, text=namespaceString, padx=15, anchor="w")
@@ -99,7 +99,7 @@ class App(customtkinter.CTk):
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="k8x", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="k8x", font=customtkinter.CTkFont(size=30, weight="bold"), text_color="gray75")
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
         self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, text="Connect", command=self.connect_button_event)
         self.sidebar_button_1.grid(row=1, column=0, padx=20, pady=10)
@@ -122,7 +122,7 @@ class App(customtkinter.CTk):
 
         # create scrollable label and button frame
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.status_label = customtkinter.CTkLabel(self, text="Offline - Not Connected", anchor="w")
+        self.status_label = customtkinter.CTkLabel(self, text="Offline - Not Connected", anchor="w", text_color="orange")
         self.status_label.grid(row=0, column=2, padx=20, pady=(10, 0))
         self.scrollable_label_button_frame = ScrollableLabelButtonFrame(master=self, width=900, height=500,commandStop=self.label_button_frame_stop_event,commandSimulate=self.label_button_frame_simulate_event, corner_radius=0)
         self.scrollable_label_button_frame.grid(row=1, column=2, padx=10, pady=10, sticky="nsew")
@@ -130,7 +130,7 @@ class App(customtkinter.CTk):
         #     self.scrollable_label_button_frame.add_item(f"container number {i}", image=customtkinter.CTkImage(Image.open(os.path.join(current_dir, "test_images", "chat_light.png"))))
     def set_status(self, status):
         time.sleep(1)
-        self.status_label.configure(text=status)
+        self.status_label.configure(text=status, text_color="green", font=customtkinter.CTkFont(weight="bold"))
 
     def call_add_item(self, item, namespace, cpuRequest, memRequest, container, image):
         self.scrollable_label_button_frame.add_item(item, namespace, cpuRequest, memRequest, container, image)

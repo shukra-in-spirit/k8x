@@ -7,8 +7,9 @@ import requests
 import time
 import customtkinter
 import os
-from PIL import Image
+from PIL import Image, ImageTk
 import local
+import win10toast
 
 class ConnectPopup():
     def __init__(self):
@@ -18,24 +19,24 @@ class ConnectPopup():
 
         self.main_root = app
         # Create a new Toplevel window for the pop-up
-        popup = tk.Toplevel(app)
-        popup.title("Connect to k8x")
+        self.popup = tk.Toplevel(app)
+        self.popup.title("Connect to k8x")
 
         # Create and place form widgets in the pop-up window
-        label1 = ttk.Label(popup, text="url:")
-        entry1 = ttk.Entry(popup)
+        label1 = ttk.Label(self.popup, text="url:")
+        entry1 = ttk.Entry(self.popup)
 
-        label2 = ttk.Label(popup, text="username:")
-        entry2 = ttk.Entry(popup)
+        label2 = ttk.Label(self.popup, text="username:")
+        entry2 = ttk.Entry(self.popup)
 
-        label3 = ttk.Label(popup, text="password:")
-        entry3 = ttk.Entry(popup)
+        label3 = ttk.Label(self.popup, text="password:")
+        entry3 = ttk.Entry(self.popup)
 
-        label4 = ttk.Label(popup, text="port:")
-        entry4 = ttk.Entry(popup)
+        label4 = ttk.Label(self.popup, text="port:")
+        entry4 = ttk.Entry(self.popup)
 
-        button1 = ttk.Button(popup, text="Connect", command=self.connect_to_k8s)
-        button2 = ttk.Button(popup, text="Cancel", command=popup.destroy)
+        button1 = ttk.Button(self.popup, text="Connect", command=self.connect_to_k8s)
+        button2 = ttk.Button(self.popup, text="Cancel", command=self.popup.destroy)
 
 
         # Grid layout for form widgets
@@ -56,44 +57,25 @@ class ConnectPopup():
 
     def connect_to_k8s(self):
         self.main_root.set_status("Online - You are connected.")
+        self.popup.destroy()
 
 
 def open_popup_help(app):
     # Create a new Toplevel window for the pop-up
     popup = tk.Toplevel(app)
-    popup.title("Connect to k8x")
+    popup.title("Help")
 
-    # Create and place form widgets in the pop-up window
-    label1 = ttk.Label(popup, text="url:")
-    entry1 = ttk.Entry(popup)
+    # Load and resize the image
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    original_image = Image.open(os.path.join(current_dir, "test_images", "help.png"))  # Replace with the path to your image
+    resized_image = original_image.resize((900, 600))
+    image_tk = ImageTk.PhotoImage(resized_image)
+    label = tk.Label(popup, image=image_tk)
+    label.photo=image_tk
+    label.pack()
 
-    label2 = ttk.Label(popup, text="username:")
-    entry2 = ttk.Entry(popup)
-
-    label3 = ttk.Label(popup, text="password:")
-    entry3 = ttk.Entry(popup)
-
-    label4 = ttk.Label(popup, text="port:")
-    entry4 = ttk.Entry(popup)
-
-    button1 = ttk.Button(popup, text="Connect", command=submit_form)
-    button2 = ttk.Button(popup, text="Cancel", command=popup.destroy)
-
-    # Grid layout for form widgets
-    label1.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-    entry1.grid(row=0, column=1, padx=10, pady=5, sticky="w")
-
-    label2.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-    entry2.grid(row=1, column=1, padx=10, pady=5, sticky="w")
-
-    label3.grid(row=2, column=0, padx=10, pady=5, sticky="w")
-    entry3.grid(row=2, column=1, padx=10, pady=5, sticky="w")
-
-    label4.grid(row=3, column=0, padx=10, pady=5, sticky="w")
-    entry4.grid(row=3, column=1, padx=10, pady=5, sticky="w")
-
-    button1.grid(row=4, column=0, columnspan=2, pady=10)
-    button2.grid(row=5, column=0, columnspan=2, pady=5)
+    button2 = ttk.Button(popup, text="Close", command=popup.destroy)
+    button2.pack()
 
 class AddPopup():
     def __init__(self):
@@ -127,7 +109,7 @@ class AddPopup():
 
 
         button1 = ttk.Button(self.popup, text="Create", command=self.add_service)
-        button2 = ttk.Button(self.popup, text="Predict", command=self.start_service)
+        # button2 = ttk.Button(self.popup, text="Predict", command=self.start_service)
         button3 = ttk.Button(self.popup, text="Cancel", command=self.popup.destroy)
 
         # Grid layout for form widgets
@@ -150,27 +132,38 @@ class AddPopup():
         entry6.grid(row=5, column=1, padx=10, pady=5, sticky="w")
 
         button1.grid(row=6, column=0, columnspan=2, pady=10)
-        button2.grid(row=7, column=0, columnspan=2, pady=5)
-        button3.grid(row=8, column=0, columnspan=2, pady=5)
+        # button2.grid(row=7, column=0, columnspan=2, pady=5)
+        button3.grid(row=7, column=0, columnspan=2, pady=5)
 
     def add_service(self):
+        if self.main_root.status_label.cget("text") == "Offline - Not Connected":
+            win10toast.ToastNotifier().show_toast('Please Connect to k8x server', 'The UI is not connected to a k8x server, please use the Connect button to connect to k8x running in a kubernetes cluster to add the services present in the cluster.', icon_path='', duration=5, threaded=True)
+            self.popup.destroy()
+            return
         deployment = self.entry1.get()
         namespace = self.entry2.get()
         # url = "http://localhost:8585/" + deployment + namespace + "123"
         # requests.post(url)
         cpu_request, mem_request, container = local.get_data(deployment,namespace)
+        if (container == ""):
+            time.sleep(1)
+            win10toast.ToastNotifier().show_toast('Deployment not found in namespace', 'Please check the provided values. The deployment was not found in the provided namespace.', icon_path='', duration=5, threaded=True)
+            time.sleep(2)
+            self.popup.destroy()
+            return
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.main_root.call_add_item(item=deployment, namespace=namespace, cpuRequest=cpu_request,memRequest=mem_request,container=container, image=customtkinter.CTkImage(Image.open(os.path.join(current_dir, "test_images", "chat_light.png"))))
-        return
-
-
-    def start_service(self):
-        deployment = self.entry1.get()
-        namespace = self.entry2.get()
-        url = "http://localhost:8585/" + deployment + namespace + "123/start"
-        requests.post(url)
         self.popup.destroy()
         return
+
+
+    # def start_service(self):
+    #     deployment = self.entry1.get()
+    #     namespace = self.entry2.get()
+    #     url = "http://localhost:8585/" + deployment + namespace + "123/start"
+    #     requests.post(url)
+    #     self.popup.destroy()
+    #     return
 
 class SimulationPopup():
     def __init__(self):
