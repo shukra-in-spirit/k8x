@@ -57,9 +57,10 @@ func ProcessPromData(id string, l1 []models.PrometheusDataSetResponseItem, l2 []
 
 	for _, cpu := range l1 {
 		for _, mem := range l2 {
-			if cpu.Timestamp == mem.Timestamp {
-				promData = append(promData, &models.PromData{ServiceID: id, Timestamp: cpu.Timestamp, CPU: cpu.Metric, Memory: mem.Metric})
-			}
+			// if cpu.Timestamp == mem.Timestamp {
+			// 	promData = append(promData, &models.PromData{ServiceID: id, Timestamp: cpu.Timestamp, CPU: cpu.Metric, Memory: mem.Metric})
+			// }
+			promData = append(promData, &models.PromData{ServiceID: id, CPU: cpu.Metric, Memory: mem.Metric})
 		}
 	}
 
@@ -71,9 +72,10 @@ func PrepareHistoryData(l1 []models.PrometheusDataSetResponseItem, l2 []models.P
 
 	for _, cpu := range l1 {
 		for _, mem := range l2 {
-			if cpu.Timestamp == mem.Timestamp {
-				promData = append(promData, &models.History{Timestamp: cpu.Timestamp, CPU: cpu.Metric, Memory: mem.Metric})
-			}
+			// if cpu.Timestamp == mem.Timestamp {
+			// 	promData = append(promData, &models.History{Timestamp: cpu.Timestamp, CPU: cpu.Metric, Memory: mem.Metric})
+			// }
+			promData = append(promData, &models.History{CPU: cpu.Metric, Memory: mem.Metric})
 		}
 	}
 
