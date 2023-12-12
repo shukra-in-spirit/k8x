@@ -17,6 +17,11 @@ docker pull [IMAGE_NAME]
 minikube image load [IMAGE_NAME]
 ```
 3. Repeat until all pods are in running state.
+4. Sample port forwarding command.
+```
+kubectl get svc
+kubectl port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090
+```
 
 ### Tests
 
