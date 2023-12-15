@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"time"
 
+	"github.com/shukra-in-spirit/k8x/internal/constants"
 	"github.com/shukra-in-spirit/k8x/internal/controllers"
 )
 
@@ -97,7 +99,42 @@ func functionalTestingPrometheusInterface() {
 	fmt.Printf("Time taken to get cpu data from prometheus: %vms", timeTaken)
 }
 
+func testError() {
+	listener := controllers.NewPrometheusInstance("http://localhost:9090")
+	ns := "default"
+	container := "prometheus"
+	currTime := time.Now()
+	startTime := currTime.AddDate(0, 0, constants.TrainingDataDuration)
+	promQueryCPU := controllers.BuildPromQueryForCPU(ns, "2m", container)
+	promQueryMem := controllers.BuildPromQueryForMemory(ns, "2m", container)
+	// fmt.Printf("%s\n%s\n\n\n", promQueryCPU, promQueryMem)
+	//fmt.Printf("%s\n\n\n", promQueryMem)
+	_, _ = listener.GetPrometheusDataWithinRange(context.TODO(), promQueryMem, startTime, currTime, constants.StepsMinutesInterval*time.Minute, "memory")
+	fmt.Printf("\n\n")
+	_, _ = listener.GetPrometheusDataWithinRange(context.TODO(), promQueryCPU, startTime, currTime, constants.StepsMinutesInterval*time.Minute, "cpu")
+
+	// cpuList := promCPU.PromItemList
+	// for i, v := range promMem.PromItemList {
+	// 	fmt.Printf("%v, %v\n", v, cpuList[i])
+	// }
+	//fmt.Print(promMem.PromDataType)
+	//for _, v := range promMem.PromItemList {
+	//	fmt.Print(v, "\n")
+	//}
+}
+
+func testLocalLambdaExecution() {
+	cmd := exec.Command("python", "./lambda/create_lambda/lambda_function.py", "prometheus-default")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("%s", err)
+	}
+	fmt.Printf("%v", output)
+}
+
 func main() {
-	//functionalTestScalingInterface()
-	functionalTestingPrometheusInterface()
+	// functionalTestScalingInterface()
+	// functionalTestingPrometheusInterface()
+	// testError()
+	testLocalLambdaExecution()
 }

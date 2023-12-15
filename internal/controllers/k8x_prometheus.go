@@ -1,14 +1,15 @@
 package controllers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"os"
 	"time"
 
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
+	promModel "github.com/prometheus/common/model"
 	"github.com/shukra-in-spirit/k8x/internal/constants"
 	"github.com/shukra-in-spirit/k8x/internal/models"
 )
@@ -17,16 +18,27 @@ import (
 
 type PrometheusFunctions interface {
 	GetPrometheusData(ctx context.Context, promQuery string, queryType string) (*models.PrometheusDataSetResponse, error)
-	GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps string, queryType string) (*models.PrometheusDataSetResponse, error)
+	GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps time.Duration, queryType string) (*models.PrometheusDataSetResponse, error)
 }
 
 type PrometheusInstance struct {
-	url string
+	PromClientAPI v1.API
 }
 
 func NewPrometheusInstance(promUrl string) *PrometheusInstance {
+	// Create a new Prometheus API client
+	client, err := api.NewClient(api.Config{
+		Address: promUrl,
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error creating client:", err)
+		os.Exit(1)
+	}
+
+	v1api := v1.NewAPI(client)
+
 	return &PrometheusInstance{
-		url: promUrl,
+		PromClientAPI: v1api,
 	}
 }
 
@@ -45,7 +57,7 @@ func (prom *PrometheusInstance) GetPrometheusData(ctx context.Context, promQuery
 	startTimeInt := endTime.Unix() - constants.DefaultPrometheusTimeRange
 	startTime := time.Unix(startTimeInt, 0)
 
-	responseDataFrame, err := prom.GetPrometheusDataWithinRange(ctx, promQuery, startTime, endTime, "", queryType)
+	responseDataFrame, err := prom.GetPrometheusDataWithinRange(ctx, promQuery, startTime, endTime, constants.StepsMinutesInterval*time.Minute, queryType)
 	if err != nil {
 		fmt.Errorf("%v", err)
 		return &models.PrometheusDataSetResponse{}, nil
@@ -53,57 +65,51 @@ func (prom *PrometheusInstance) GetPrometheusData(ctx context.Context, promQuery
 	return responseDataFrame, nil
 }
 
-func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps string, queryType string) (*models.PrometheusDataSetResponse, error) {
-	// Create a JSON payload with the query_range parameters
-	queryRangeJSON := map[string]interface{}{
-		"query":  promQuery,
-		"start":  startTime,
-		"end":    endTime, // Set end time to the current time
-		"step":   steps,   // Step size for the range vector in seconds (e.g., 20s)
-		"format": "json",
+func (prom *PrometheusInstance) GetPrometheusDataWithinRange(ctx context.Context, promQuery string, startTime time.Time, endTime time.Time, steps time.Duration, queryType string) (*models.PrometheusDataSetResponse, error) {
+
+	queryRangeJSON := v1.Range{
+		Start: startTime,
+		End:   endTime,
+		Step:  steps,
 	}
-	queryRangeBytes, err := json.Marshal(queryRangeJSON)
+
+	result, warnings, err := prom.PromClientAPI.QueryRange(ctx, promQuery, queryRangeJSON, v1.WithTimeout(constants.PrometheusRequestTimeOut*time.Second))
 	if err != nil {
-		fmt.Errorf("%v", err)
-		return nil, err
+		fmt.Printf("Error querying Prometheus: %v\n", err)
+		os.Exit(1)
+	}
+	if len(warnings) > 0 {
+		fmt.Printf("Warnings: %v\n", warnings)
 	}
 
-	// Create a POST request to the Prometheus query_range API
-	req, err := http.NewRequest("POST", prom.url, bytes.NewBuffer(queryRangeBytes))
-	if err != nil {
-		fmt.Errorf("%v", err)
-		return nil, err
-	}
+	list := MarshalPromResult(result, queryType)
 
-	// Set headers for the request
-	req.Header.Set("Content-Type", "application/json")
+	return list, nil
+}
 
-	// Perform the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Errorf("%v", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Errorf("%v", err)
-		return nil, err
-	}
-
-	// Create an instance of prometheusDataItemList
-	list := models.PrometheusDataSetResponse{
-		PromItemList: make([]models.PrometheusDataSetResponseItem, 0, len(body)),
+func MarshalPromResult(PromResult promModel.Value, queryType string) *models.PrometheusDataSetResponse {
+	// Process the result
+	dataSetResponse := models.PrometheusDataSetResponse{
 		PromDataType: queryType,
+		PromItemList: make([]models.PrometheusDataSetResponseItem, 0),
 	}
 
-	// Iterate over the byte slice and fill the list
-	for _, b := range body {
-		list.PromItemList = append(list.PromItemList, models.PrometheusDataSetResponseItem{Metric: float32(b)})
+	// Assuming result is of type model.Value
+	switch data := PromResult.(type) {
+	case model.Matrix: // Check if the result is a Matrix (range vector)
+		for _, stream := range data {
+			for _, value := range stream.Values {
+				dataSetResponse.PromItemList = append(dataSetResponse.PromItemList, models.PrometheusDataSetResponseItem{
+					Metric: float32(value.Value),
+				})
+			}
+		}
+	// Handle other types (model.Vector, model.Scalar, etc.) as needed
+	default:
+		fmt.Println("Unknown result format")
 	}
 
-	return &list, nil
+	// Print the parsed data
+	//fmt.Printf("Parsed Data: %+v\n", dataSetResponse)
+	return &dataSetResponse
 }

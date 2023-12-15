@@ -5,18 +5,19 @@ import lambda_function as c
 if __name__ == "__main__":
     # Access command line arguments
     args = sys.argv[1:]
-
+    print(args)
     if not args:
         print("No arguments provided.")
         sys.exit(1)
 
     # Assuming the argument is a JSON-formatted string
-    json_string = args[0]
-
+    hello = dict()
+    print("entered")
     try:
         # Parse the JSON string into a dictionary
-        data = json.loads(json_string)
-        response = c.lambda_handler(data, "context")
+        # data = json.loads(json_string)
+        hello['service_id']=args
+        response = c.lambda_handler(hello, "context")
         # # Accessing keys and values
         # for key, value in data.items():
         #     print(f"Key: {key}, Value: {value}")

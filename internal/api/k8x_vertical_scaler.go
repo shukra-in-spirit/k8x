@@ -53,25 +53,28 @@ func (listener *K8ManagerAPI) verticalScaler(ctx context.Context, id string) {
 
 func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName string) (string, string, error) {
 	currTime := time.Now()
-	startTime := currTime.AddDate(0, 0, -14)
+	startTime := currTime.AddDate(0, 0, constants.TrainingDataDuration)
 
-	depl, ns := helpers.DecomposeServiceID(id)
+	container, ns := helpers.DecomposeServiceID(id)
 
-	container, err := listener.kubeClient.GetContainerNameFromDeployment(ctx, depl, ns)
-	if err != nil {
-		return "", "", fmt.Errorf("failed fetching container name for service %s: %v", id, err)
-	}
+	//container, err := listener.kubeClient.GetContainerNameFromDeployment(ctx, depl, ns)
+	// if err != nil {
+	// 	return "", "", fmt.Errorf("failed fetching container name for service %s: %v", id, err)
+	// }
 
 	var promCPU, promMem *models.PrometheusDataSetResponse
 	var err1, err2 error
 
 	// Fetch 2 weeks data from prom.
-	if helpers.GetEnvOrDefault("PROM_MODE", constants.Local) == constants.Local {
+	if helpers.GetEnvOrDefault("PROM_MODE", constants.PrometheusMode) == "local" {
 		promCPU, err1 = controllers.GetCSVData(ctx, id+"-cpu-train.csv")
 		promMem, err2 = controllers.GetCSVData(ctx, id+"-mem-train.csv")
 	} else {
-		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m", "cpu")
-		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForMemory(ns, "2m", container), startTime, currTime, "20m", "memory")
+		promQueryCPU := controllers.BuildPromQueryForCPU(ns, "2m", container)
+		promQueryMem := controllers.BuildPromQueryForMemory(ns, "2m", container)
+		//fmt.Printf("%s\n%s\n\n\n", promQueryCPU, promQueryMem)
+		promMem, err2 = listener.promClient.GetPrometheusDataWithinRange(ctx, promQueryMem, startTime, currTime, constants.StepsMinutesInterval*time.Minute, "memory")
+		promCPU, err1 = listener.promClient.GetPrometheusDataWithinRange(ctx, promQueryCPU, startTime, currTime, constants.StepsMinutesInterval*time.Minute, "cpu")
 	}
 
 	// promCPU, err = listener.promClient.GetPrometheusDataWithinRange(ctx, controllers.BuildPromQueryForCPU(ns, "2m", container), startTime, currTime, "20m")
@@ -83,12 +86,16 @@ func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName
 	if err2 != nil {
 		return "", "", fmt.Errorf("failed fetching data from prometheus: %v", err2)
 	}
+	// promCPUValueList := promCPU.PromItemList
+	// for index, value := range promMem.PromItemList {
+	// 	fmt.Printf("cpu: %v, memory: %v\n\n", promCPUValueList[index], value)
+	// }
 
 	promData := helpers.ProcessPromData(id, promCPU.PromItemList, promMem.PromItemList)
 
 	// Push to DB.
 	// err = listener.dbClient.AddData(data)
-	err = listener.dbClient.AddDataBatch(promData, id)
+	err := listener.dbClient.AddDataBatch(promData, id)
 	if err != nil {
 		return "", "", fmt.Errorf("batch DB write failed: %v", err)
 	}
@@ -105,7 +112,7 @@ func (listener *K8ManagerAPI) commonCreateFunc(ctx context.Context, id, funcName
 
 	// Call create lambda.
 	if helpers.GetEnvOrDefault("LAMBDA_MODE", constants.Local) == constants.Local {
-		output, err = helpers.TriggerLocalCreateLambdaWithEvent(payload, funcName)
+		output, err = helpers.TriggerLocalCreateLambdaWithEvent(id, funcName)
 	} else {
 		output, err = listener.lambdaClient.TriggerLambdaWithEvent(payload, funcName)
 	}
