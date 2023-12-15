@@ -40,6 +40,7 @@ type LambdaResponse struct {
 }
 
 type PromData struct {
+	ID        string  `json:"id"`
 	ServiceID string  `json:"service_id"`
 	CPU       float32 `json:"cpu"`
 	Memory    float32 `json:"memory"`

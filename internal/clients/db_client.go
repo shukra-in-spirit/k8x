@@ -50,6 +50,9 @@ func (e *promStore) AddData(data *models.PromData) error {
 }
 
 func (e *promStore) AddDataBatch(dataList []*models.PromData, serviceID string) error {
+	// for _, data := range dataList {
+	// 	fmt.Printf("ID: %s, ServiceID: %s, CPU: %.2f, Memory: %.2f\n", data.ID, data.ServiceID, data.CPU, data.Memory)
+	// }
 	written := 0
 	batchSize := 25 // DynamoDB allows a maximum batch size of 25 items.
 	start := 0

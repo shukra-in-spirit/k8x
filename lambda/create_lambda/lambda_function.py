@@ -4,6 +4,7 @@ import pandas as pd
 from numpy import array, asarray
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Bidirectional
+import sys
 
 # get the data from the dynamodb table for the service
 def query_dynamodb_table(partition_key_value):
@@ -36,7 +37,7 @@ def query_dynamodb_table(partition_key_value):
 # create the dataframes
 def create_dataframes(cpu_memory_data):
     # normalise the json to dataframe
-    cpu_memory_data_pd = pd.json_normalize(cpu_memory_data, meta=['timestamp', 'cpu', 'memory'])
+    cpu_memory_data_pd = pd.json_normalize(cpu_memory_data, meta=['id', 'cpu', 'memory'])
     
     # create the cpu list
     cpu_df = cpu_memory_data_pd['cpu'].tolist()
@@ -96,7 +97,7 @@ def upload_model_to_s3(local_path, s3_path):
     try:
         # Upload the file
         s3.upload_file(local_path, 'k8x', s3_path)
-        print(f"File uploaded successfully to s3://k8x/{s3_path}")
+        # print(f"File uploaded successfully to s3://k8x/{s3_path}")
     except Exception as e:
         print(f"Error uploading file to S3: {e}")
     return
@@ -114,7 +115,7 @@ def lambda_handler(event, context):
 
     # convert the data to pandas data frame
     cpu_training_df, memory_training_df = create_dataframes(training_data_dd)
-    print("2")
+    # print("2")
 
     ## CPU ##
     # set cpu model training parameters
@@ -125,7 +126,7 @@ def lambda_handler(event, context):
 
     # ceate the cpu model 
     cpu_model = create_and_fit_model(cpu_training_df, cpu_n_steps, cpu_n_features, cpu_hidden_layers, cpu_epochs)
-    print('3')
+    # print('3')
     
     # save cpu model
     cpu_model_s3_path = event['service_id'] + '/cpu_model.h5'
@@ -134,11 +135,11 @@ def lambda_handler(event, context):
 
     # calculate cpu average
     cpu_avg = calculate_average(cpu_training_df)
-    print('4')
+    # print('4')
 
     # upload model to s3
     upload_model_to_s3(cpu_model_local_path, cpu_model_s3_path)
-    print('5')
+    # print('5')
 
     ## Memory ##
     # set memory model training parameters
@@ -162,13 +163,11 @@ def lambda_handler(event, context):
     upload_model_to_s3(memory_model_local_path, memory_model_s3_path)
 
     return {
-        'statusCode': 200,
-        'body': {
-            "cpu": cpu_avg,
-            "memory": memory_avg
-        }
+        "cpu": cpu_avg,
+        "memory": memory_avg
     }
 
 hello = dict()
-hello['service_id']="mrs-vas-1"
-lambda_handler(hello,'jello')
+argument1 = sys.argv[1]
+hello['service_id']=argument1
+response = lambda_handler(hello,'jello')

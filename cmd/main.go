@@ -9,6 +9,7 @@ import (
 	"github.com/shukra-in-spirit/k8x/internal/api"
 	"github.com/shukra-in-spirit/k8x/internal/clients"
 	"github.com/shukra-in-spirit/k8x/internal/config"
+	"github.com/shukra-in-spirit/k8x/internal/constants"
 	"github.com/shukra-in-spirit/k8x/internal/controllers"
 )
 
@@ -29,7 +30,14 @@ func main() {
 	dbHandler := clients.NewPromStore(dynamodb.New(session))
 	promHandler := controllers.NewPrometheusInstance(conf.PromUrl)
 	lambdaHandler := clients.NewLamdaClient(lambda.New(session))
-	kubeHandler := controllers.NewKubeClient()
+
+	kubeHandler := &controllers.KubeClient{}
+
+	if constants.KubeClientMode == "cluster" {
+		kubeHandler = controllers.NewKubeClient()
+	} else {
+		kubeHandler = controllers.NewKubeClientLocal()
+	}
 
 	kubeManager := api.NewK8Manager(dbHandler, promHandler, lambdaHandler, kubeHandler)
 
