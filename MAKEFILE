@@ -1,20 +1,28 @@
-.PHONY: build run functional-test go-lint py-lint
+.PHONY: go-build go-run go-test go-lint py-lint
 
-# this command is used to 
-build:
+# make the golang bin files and store it in /bin/
+go-build:
 	@mkdir -p bin
 	go build -o bin/ ./cmd
 
-run:
+# make the go API server run on localhost:8080
+go-run:
 	go run ./cmd/main.go
 
-functional-test:
+# make for the golang interfaces functional tests
+go-test:
 	go run ./functional_test/dummy_main.go
 
+# make the lint for all the golang code
 go-lint:
 	@which golangci-lint || { echo "golangci-lint is not installed"; exit 1; }
 	golangci-lint run --config golangci-lint.yaml ./...
 
+# all the python related make commands
+# make the lint for all the python files
 py-lint:
-	@command -v flake8 >/dev/null 2>&1 || { echo "flake8 not installed. Installing..."; pip install flake8; }
-	flake8 .
+	LINTERS = pylama pylama_pylint pylama_mccabe pylama_pycodestyle pylama_pyflakes pylama_pydocstyle
+	@for linter in $(LINTERS); do \
+        	pip freeze | grep $$linter > /dev/null || pip install $$linter; \
+    	done
+	pylama .
