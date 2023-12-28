@@ -1,5 +1,6 @@
-.PHONY: build run functional-test lint
+.PHONY: build run functional-test go-lint py-lint
 
+# this command is used to 
 build:
 	@mkdir -p bin
 	go build -o bin/ ./cmd
@@ -10,6 +11,10 @@ run:
 functional-test:
 	go run ./functional_test/dummy_main.go
 
-lint:
+go-lint:
 	@which golangci-lint || { echo "golangci-lint is not installed"; exit 1; }
 	golangci-lint run --config golangci-lint.yaml ./...
+
+py-lint:
+	@command -v flake8 >/dev/null 2>&1 || { echo "flake8 not installed. Installing..."; pip install flake8; }
+	flake8 .
