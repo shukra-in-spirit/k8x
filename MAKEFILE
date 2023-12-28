@@ -1,0 +1,8 @@
+.PHONY: build run
+
+build:
+	@mkdir -p bin
+	go build -o bin/ ./cmd
+
+run:
+	go run ./cmd/main.go
